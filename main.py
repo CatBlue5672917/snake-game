@@ -11,6 +11,11 @@ root = Tk()
 root.title("Змейка")
 can = Canvas(root, width=WIDTH, height=HEIGHT, background=BG)
 can.pack(anchor=CENTER, expand=1)
+can.focus_set()
+
+game_over_text = can.create_text(WIDTH / 2, HEIGHT / 2, text="GAME OVER",
+                                 font='Arial 28', fill='red',
+                                 state='hidden')
 
 restart_text = can.create_text(WIDTH / 2, HEIGHT - HEIGHT / 3, font="Arial 38", fill="white",
                                text="Click here to restart", state="hidden")
@@ -21,10 +26,6 @@ class Segment(object):
         self.instance = can.create_rectangle(x, y, x + SEG_SIZE, y + SEG_SIZE, fill="#000000")
 
 
-seg = Segment(x=0, y=0)
-seg.instance
-
-
 def create_block():
     global BLOCK
     posx = (SEG_SIZE * random.randint(1, (WIDTH - SEG_SIZE) / SEG_SIZE))
@@ -32,18 +33,42 @@ def create_block():
     BLOCK = can.create_oval(posx, posy, posx + SEG_SIZE, posy + SEG_SIZE, fill="#ff6f00")
 
 
+def main():
+    global GAME
+    if GAME:
+        s.move()
+        head_coords = can.coords(s.segments[-1].instance)
+        x1, y1, x2, y2 = head_coords
+        if x2 > WIDTH or x1 < 0 or y1 < 0 or y2 > HEIGHT:
+            GAME = False
+        elif head_coords == can.coords(BLOCK):
+            s.add_segment()
+            can.delete(BLOCK)
+            create_block()
+        else:
+            for index in range(len(s.segments) - 1):
+                if head_coords == can.coords(s.segments[index].instance):
+                    GAME = False
+        root.after(100, main)
+    else:
+        set_state(restart_text, 'normal')
+        set_state(game_over_text, 'normal')
+
+
 def clicked(event):
     global GAME
     GAME = True
     can.delete(BLOCK)
     can.itemconfigure(restart_text, )
+    start_game()
 
 
 def start_game():
     global s
     create_block()
     s = create_snake()
-    can.bind("<KeyPress>", s.change_direction())
+    can.bind("<KeyPress>", s.change_direction)
+    main()
 
 
 def create_snake():
@@ -84,9 +109,13 @@ class Snake(object):
                    x1 + self.vector[0] * SEG_SIZE,
                    y1 + self.vector[1] * SEG_SIZE,
                    x2 + self.vector[0] * SEG_SIZE,
-                   y2 + self.vevtor[1] * SEG_SIZE)
+                   y2 + self.vector[1] * SEG_SIZE)
 
 
-create_block()
+def set_state(item, state):
+    can.itemconfigure(item, state=state)
 
+
+can.tag_bind(restart_text, "<Button-1>", clicked)
+start_game()
 root.mainloop()
